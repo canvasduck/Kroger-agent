@@ -181,9 +181,11 @@ class LLMService {
             Analyze the grocery item and the search results, then select the product that best matches the user's preferences.
             Consider factors like:
             1. Product name match
-            2. Brand preferences (if specified)
-            3. Size/quantity preferences (if specified)
-            4. Other specific preferences
+            2. Lowest price per volume/weight
+            3. Brand preferences (if specified)
+            4. Size/quantity preferences (if specified)
+            5. Lowest absolute price
+            6. Other specific preferences
             
             Return your selection as a JSON object with the following properties:
             - upc: The UPC of the selected product
