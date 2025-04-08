@@ -9,6 +9,8 @@
       <div class="card-body">
         <p class="text-center mb-4">Enter your ZIP code to find nearby Kroger stores</p>
         
+        <div id="locationStatusContainer"></div>
+        
         <% if (typeof error !== 'undefined' && error) { %>
           <div class="alert alert-danger">
             <%= error %>

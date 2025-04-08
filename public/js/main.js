@@ -1,5 +1,5 @@
 /**
- * Main JavaScript for Kroger Grocery Assistant
+ * Main JavaScript for Grocery Assistant
  */
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -67,7 +67,73 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       });
     });
+
+    // Store location ID in localStorage when form is submitted
+    const locationForm = document.querySelector('form[action="/groceries/locations/select"]');
+    if (locationForm) {
+      locationForm.addEventListener('submit', function(e) {
+        const selectedRadio = document.querySelector('input[name="locationId"]:checked');
+        if (selectedRadio) {
+          // Store the selected location ID in localStorage
+          localStorage.setItem('krogerLocationId', selectedRadio.value);
+          console.log('Location ID saved to localStorage:', selectedRadio.value);
+        }
+      });
+    }
   }
+
+  // Check for stored location ID on page load
+  const checkStoredLocation = () => {
+    // Only run this check on the locations page
+    if (window.location.pathname === '/groceries/locations') {
+      const storedLocationId = localStorage.getItem('krogerLocationId');
+      
+      if (storedLocationId) {
+        console.log('Found stored location ID:', storedLocationId);
+        
+        // Create a form to submit the stored location ID
+        const autoSelectForm = document.createElement('form');
+        autoSelectForm.method = 'POST';
+        autoSelectForm.action = '/groceries/locations/select';
+        autoSelectForm.style.display = 'none';
+        
+        const locationInput = document.createElement('input');
+        locationInput.type = 'hidden';
+        locationInput.name = 'locationId';
+        locationInput.value = storedLocationId;
+        
+        autoSelectForm.appendChild(locationInput);
+        document.body.appendChild(autoSelectForm);
+        
+        // Add a message to inform the user
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'alert alert-info';
+        infoDiv.innerHTML = 'Using your previously selected store. <button type="button" class="btn btn-sm btn-link" id="changeLocationBtn">Change location</button>';
+        
+        const cardBody = document.querySelector('.card-body');
+        if (cardBody) {
+          cardBody.insertBefore(infoDiv, cardBody.firstChild);
+        }
+        
+        // Add event listener for the change location button
+        document.getElementById('changeLocationBtn').addEventListener('click', function() {
+          infoDiv.remove();
+          return false;
+        });
+        
+        // Submit the form after a short delay to allow the user to see the message
+        setTimeout(() => {
+          // Only submit if the user hasn't clicked the change location button
+          if (document.contains(infoDiv)) {
+            autoSelectForm.submit();
+          }
+        }, 1500);
+      }
+    }
+  };
+  
+  // Run the location check
+  checkStoredLocation();
 
   // Automatically dismiss alerts after 5 seconds
   const alerts = document.querySelectorAll('.alert:not(.alert-permanent)');
@@ -77,4 +143,147 @@ document.addEventListener('DOMContentLoaded', function() {
       bsAlert.close();
     }, 5000);
   });
+
+  // Configuration Modal Functionality
+  const configModal = document.getElementById('configModal');
+  if (configModal) {
+    // Display current store information in the config modal
+    const currentStoreDisplay = document.getElementById('currentStoreDisplay');
+    if (currentStoreDisplay) {
+      const storedLocationId = localStorage.getItem('krogerLocationId');
+      if (storedLocationId) {
+        currentStoreDisplay.textContent = `Store ID: ${storedLocationId}`;
+      } else {
+        currentStoreDisplay.textContent = 'No store selected';
+      }
+    }
+
+    // Handle ZIP code search in config modal
+    const searchStoresBtn = document.getElementById('searchStoresBtn');
+    const zipCodeConfig = document.getElementById('zipCodeConfig');
+    const storeListContainer = document.getElementById('storeListContainer');
+    const storeListGroup = document.getElementById('storeListGroup');
+    const saveLocationBtn = document.getElementById('saveLocationBtn');
+
+    if (searchStoresBtn && zipCodeConfig) {
+      searchStoresBtn.addEventListener('click', async function() {
+        const zipCode = zipCodeConfig.value.trim();
+        if (!zipCode || !zipCode.match(/^\d{5}$/)) {
+          alert('Please enter a valid 5-digit ZIP code');
+          return;
+        }
+
+        // Show loading indicator
+        searchStoresBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Searching...';
+        searchStoresBtn.disabled = true;
+
+        try {
+          // Fetch stores using the existing endpoint
+          const response = await fetch(`/groceries/locations/search?zipCode=${zipCode}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `zipCode=${zipCode}`
+          });
+
+          // This will return the full HTML page, so we need to extract the store data
+          const html = await response.text();
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, 'text/html');
+          
+          // Extract store information from the returned HTML
+          const storeItems = doc.querySelectorAll('.list-group-item');
+          
+          // Clear previous results
+          storeListGroup.innerHTML = '';
+          
+          if (storeItems.length === 0) {
+            storeListGroup.innerHTML = '<div class="alert alert-warning">No stores found near this ZIP code</div>';
+          } else {
+            // Create store list items for the modal
+            storeItems.forEach(item => {
+              const storeInfo = item.querySelector('strong').textContent;
+              const storeAddress = item.querySelector('p.mb-1').textContent;
+              const radioInput = item.querySelector('input[type="radio"]');
+              const locationId = radioInput.value;
+              
+              const listItem = document.createElement('div');
+              listItem.className = 'list-group-item list-group-item-action';
+              listItem.innerHTML = `
+                <div class="d-flex w-100 justify-content-between align-items-center">
+                  <div>
+                    <input type="radio" name="configLocationId" value="${locationId}" class="form-check-input me-2">
+                    <strong>${storeInfo}</strong>
+                    <p class="mb-1 text-muted">${storeAddress}</p>
+                  </div>
+                </div>
+              `;
+              
+              // Make the whole item clickable
+              listItem.addEventListener('click', function() {
+                const radio = this.querySelector('input[type="radio"]');
+                radio.checked = true;
+              });
+              
+              storeListGroup.appendChild(listItem);
+            });
+          }
+          
+          // Show the store list
+          storeListContainer.classList.remove('d-none');
+          
+        } catch (error) {
+          console.error('Error fetching stores:', error);
+          storeListGroup.innerHTML = '<div class="alert alert-danger">Error fetching stores. Please try again.</div>';
+        } finally {
+          // Reset button state
+          searchStoresBtn.innerHTML = 'Search';
+          searchStoresBtn.disabled = false;
+        }
+      });
+    }
+
+    // Handle store selection and saving
+    if (saveLocationBtn) {
+      saveLocationBtn.addEventListener('click', function() {
+        const selectedRadio = document.querySelector('input[name="configLocationId"]:checked');
+        if (!selectedRadio) {
+          alert('Please select a store');
+          return;
+        }
+
+        const locationId = selectedRadio.value;
+        
+        // Store in localStorage
+        localStorage.setItem('krogerLocationId', locationId);
+        
+        // Update the current store display
+        if (currentStoreDisplay) {
+          currentStoreDisplay.textContent = `Store ID: ${locationId}`;
+        }
+        
+        // Also update the session via AJAX
+        fetch('/groceries/check-stored-location?locationId=' + locationId)
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              // Show success message
+              const successAlert = document.createElement('div');
+              successAlert.className = 'alert alert-success mt-3';
+              successAlert.textContent = 'Store location updated successfully!';
+              storeListContainer.appendChild(successAlert);
+              
+              // Hide the alert after 3 seconds
+              setTimeout(() => {
+                successAlert.remove();
+              }, 3000);
+            }
+          })
+          .catch(error => {
+            console.error('Error updating store location:', error);
+          });
+      });
+    }
+  }
 });

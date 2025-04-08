@@ -24,6 +24,12 @@ app.use(session({
   cookie: { secure: process.env.NODE_ENV === 'production' }
 }));
 
+// Make session available to all views
+app.use((req, res, next) => {
+  res.locals.session = req.session;
+  next();
+});
+
 // Set view engine
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));

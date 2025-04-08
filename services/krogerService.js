@@ -66,7 +66,7 @@ class KrogerService {
           {
             upc,
             quantity,
-            modality: "PICKUP"  // Added this field from the API docs
+            modality: "DELIVERY"  // Added this field from the API docs
           }
         ]
       };

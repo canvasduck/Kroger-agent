@@ -4,7 +4,7 @@
   <div class="col-md-8">
     <div class="card">
       <div class="card-header bg-success text-white">
-        <h2 class="text-center mb-0">Your Kroger Cart</h2>
+        <h2 class="text-center mb-0">Your Cart</h2>
       </div>
       <div class="card-body">
         <% if (typeof cart !== 'undefined' && cart.items && cart.items.length > 0) { %>
@@ -88,7 +88,7 @@
         <% } else { %>
           <div class="alert alert-info">
             <h4 class="alert-heading">Your cart is empty!</h4>
-            <p>You haven't added any items to your Kroger cart yet.</p>
+            <p>You haven't added any items to your cart yet.</p>
             <hr>
             <p class="mb-0">Go to the <a href="/groceries/list">Grocery List</a> page to add items to your cart.</p>
           </div>

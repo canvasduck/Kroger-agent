@@ -55,7 +55,9 @@ const withKrogerService = (req, res, next) => {
 router.get('/list', isAuthenticated, withKrogerService, async (req, res) => {
   try {
     // If no location is selected, redirect to location selection
+    // The client-side code will check localStorage for a stored location ID
     if (!req.session.locationId) {
+      console.log('No location ID in session, redirecting to location selection');
       return res.redirect('/groceries/locations');
     }
     
@@ -185,11 +187,11 @@ router.get('/locations', isAuthenticated, withKrogerService, (req, res) => {
 
 // Handle location search
 router.post('/locations/search', isAuthenticated, withKrogerService, async (req, res) => {
-  const { zipCode } = req.body;
+  const { zipCode } = req.body || req.query;
   
   if (!zipCode || !zipCode.match(/^\d{5}$/)) {
-    return res.status(400).render('locations', { 
-      error: 'Please enter a valid 5-digit ZIP code' 
+    return res.status(400).render('locations', {
+      error: 'Please enter a valid 5-digit ZIP code'
     });
   }
   
@@ -197,20 +199,26 @@ router.post('/locations/search', isAuthenticated, withKrogerService, async (req,
     const locations = await req.krogerService.getLocations(zipCode);
     
     if (locations.length === 0) {
-      return res.render('locations', { 
+      return res.render('locations', {
         error: 'No Kroger stores found near this ZIP code',
-        zipCode 
+        zipCode
       });
     }
     
     res.render('locations', { locations, zipCode });
   } catch (error) {
     console.error('Error searching locations:', error);
-    res.status(500).render('locations', { 
+    res.status(500).render('locations', {
       error: 'Failed to search for store locations',
-      zipCode 
+      zipCode
     });
   }
+});
+
+// Handle location search via AJAX (for config modal)
+router.get('/locations/search', isAuthenticated, withKrogerService, async (req, res) => {
+  // Reuse the same handler as the POST endpoint
+  return router.post('/locations/search')(req, res);
 });
 
 // Handle location selection
@@ -218,13 +226,31 @@ router.post('/locations/select', isAuthenticated, (req, res) => {
   const { locationId } = req.body;
   
   if (!locationId) {
-    return res.status(400).render('locations', { 
-      error: 'Please select a store location' 
+    return res.status(400).render('locations', {
+      error: 'Please select a store location'
     });
   }
   
+  // Store location ID in session
   req.session.locationId = locationId;
+  console.log('Location ID saved to session:', locationId);
+  
   res.redirect('/groceries/list');
+});
+
+// Check for stored location
+router.get('/check-stored-location', isAuthenticated, (req, res) => {
+  // This endpoint can be used by client-side code to check if a location is already stored
+  // and set it in the session if needed
+  const { locationId } = req.query;
+  
+  if (locationId) {
+    req.session.locationId = locationId;
+    console.log('Location ID from localStorage set in session:', locationId);
+    return res.json({ success: true });
+  }
+  
+  return res.json({ success: false });
 });
 
 
