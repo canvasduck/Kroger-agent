@@ -59,14 +59,8 @@ router.get('/list', isAuthenticated, withKrogerService, async (req, res) => {
       return res.redirect('/groceries/locations');
     }
     
-    // Get current cart for display
+    // Initialize empty cart object
     let cart = { items: [] };
-    try {
-      cart = await req.krogerService.getCart();
-    } catch (error) {
-      console.error('Error fetching cart:', error);
-      // Continue even if cart fetch fails
-    }
     
     res.render('groceryList', { 
       cart: cart,
@@ -233,15 +227,5 @@ router.post('/locations/select', isAuthenticated, (req, res) => {
   res.redirect('/groceries/list');
 });
 
-// View cart
-router.get('/cart', isAuthenticated, withKrogerService, async (req, res) => {
-  try {
-    const cart = await req.krogerService.getCart();
-    res.render('cart', { cart });
-  } catch (error) {
-    console.error('Error fetching cart:', error);
-    res.status(500).render('error', { message: 'Failed to load cart' });
-  }
-});
 
 module.exports = router;

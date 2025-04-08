@@ -1,7 +1,7 @@
 <%- include('partials/header') %>
 
 <div class="row">
-  <div class="col-md-7">
+  <div class="col-md-12">
     <div class="card mb-4">
       <div class="card-header bg-primary text-white">
         <h2 class="mb-0">Enter Your Grocery List</h2>
@@ -93,82 +93,7 @@ Organic spinach"
       </div>
     <% } %>
   </div>
-  
-  <div class="col-md-5">
-    <div class="card">
-      <div class="card-header bg-success text-white">
-        <h3 class="mb-0">Your Kroger Cart</h3>
-      </div>
-      <div class="card-body">
-        <% if (typeof cart !== 'undefined' && cart.items && cart.items.length > 0) { %>
-          <div class="list-group mb-3">
-            <% cart.items.forEach(item => { %>
-              <div class="list-group-item">
-                <div class="d-flex w-100 justify-content-between">
-                  <h5 class="mb-1"><%= item.product.description %></h5>
-                  <span>Qty: <%= item.quantity %></span>
-                </div>
-                <p class="mb-1">
-                  <strong><%= item.product.brand %></strong>
-                  <% if (item.product.size) { %>
-                    - <%= item.product.size %>
-                  <% } %>
-                </p>
-                <% if (item.product.price) { %>
-                  <p class="mb-0">
-                    $<%= item.product.price.regular.toFixed(2) %> each
-                    <% if (item.quantity > 1) { %>
-                      ($<%= (item.product.price.regular * item.quantity).toFixed(2) %> total)
-                    <% } %>
-                  </p>
-                <% } %>
-              </div>
-            <% }); %>
-          </div>
-          
-          <% if (cart.totalPrice) { %>
-            <div class="alert alert-info">
-              <strong>Total: $<%= cart.totalPrice.toFixed(2) %></strong>
-            </div>
-          <% } %>
-          
-          <div class="d-grid gap-2">
-            <a href="https://www.kroger.com/cart" target="_blank" class="btn btn-success btn-lg">
-              View Cart on Kroger.com
-            </a>
-          </div>
-        <% } else { %>
-          <div class="alert alert-info">
-            Your cart is empty. Add items using the grocery list form.
-          </div>
-        <% } %>
-      </div>
-    </div>
-    
-    <div class="card mt-4">
-      <div class="card-header bg-info text-white">
-        <h3 class="mb-0">How It Works</h3>
-      </div>
-      <div class="card-body">
-        <ol>
-          <li>Enter your grocery items in the form</li>
-          <li>Our AI assistant will analyze your list</li>
-          <li>For each item, the assistant will:
-            <ul>
-              <li>Search for products at your selected Kroger store</li>
-              <li>Select the best match based on your preferences</li>
-              <li>Add the selected product to your Kroger cart</li>
-            </ul>
-          </li>
-          <li>Review the results and your updated cart</li>
-          <li>Checkout on Kroger.com when you're ready</li>
-        </ol>
-        <div class="alert alert-warning">
-          <strong>Tip:</strong> Be specific with your preferences (brand, size, organic, etc.) for better results.
-        </div>
-      </div>
-    </div>
-  </div>
+
 </div>
 
 <%- include('partials/footer') %>

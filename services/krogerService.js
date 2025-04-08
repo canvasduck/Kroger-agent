@@ -43,26 +43,6 @@ class KrogerService {
     }
   }
 
-  /**
-   * Get user's current cart
-   * @returns {Promise<Object>} - Cart object
-   */
-  async getCart() {
-    try {
-      console.log('Getting cart from endpoint:', `${kroger.endpoints.cart}/active`);
-      const response = await this.client.get(`${kroger.endpoints.cart}/active`);
-      console.log('Cart response status:', response.status);
-      return response.data;
-    } catch (error) {
-      console.error('Error getting cart:', error.response?.data || error.message);
-      if (error.response) {
-        console.error('Response status:', error.response.status);
-        console.error('Response headers:', error.response.headers);
-        console.error('Response data:', error.response.data);
-      }
-      throw error;
-    }
-  }
 
   /**
    * Add an item to the user's cart
