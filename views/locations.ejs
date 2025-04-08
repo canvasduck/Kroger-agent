@@ -1,0 +1,82 @@
+ <%- include('partials/header') %>
+
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-header bg-primary text-white">
+        <h2 class="text-center mb-0">Select Your Kroger Store</h2>
+      </div>
+      <div class="card-body">
+        <p class="text-center mb-4">Enter your ZIP code to find nearby Kroger stores</p>
+        
+        <% if (typeof error !== 'undefined' && error) { %>
+          <div class="alert alert-danger">
+            <%= error %>
+          </div>
+        <% } %>
+        
+        <form action="/groceries/locations/search" method="POST" class="mb-4">
+          <div class="input-group mb-3">
+            <input 
+              type="text" 
+              class="form-control form-control-lg" 
+              name="zipCode" 
+              placeholder="Enter ZIP code" 
+              pattern="[0-9]{5}" 
+              value="<%= typeof zipCode !== 'undefined' ? zipCode : '' %>"
+              required
+            >
+            <button class="btn btn-primary" type="submit">Search</button>
+          </div>
+        </form>
+        
+        <% if (typeof locations !== 'undefined' && locations.length > 0) { %>
+          <h4 class="mb-3">Nearby Stores:</h4>
+          <form action="/groceries/locations/select" method="POST">
+            <div class="list-group mb-3">
+              <% locations.forEach(location => { %>
+                <label class="list-group-item list-group-item-action">
+                  <div class="d-flex w-100 justify-content-between align-items-center">
+                    <div>
+                      <input 
+                        type="radio" 
+                        name="locationId" 
+                        value="<%= location.locationId %>" 
+                        class="form-check-input me-2"
+                        required
+                      >
+                      <strong><%= location.name %></strong>
+                      <p class="mb-1 text-muted">
+                        <%= location.address.addressLine1 %>, 
+                        <%= location.address.city %>, 
+                        <%= location.address.state %> 
+                        <%= location.address.zipCode %>
+                      </p>
+                      <small>
+                        <% if (location.hours && location.hours.regular) { %>
+                          Today's Hours: <%= location.hours.regular.todayHours || 'Not available' %>
+                        <% } else { %>
+                          Hours: Not available
+                        <% } %>
+                      </small>
+                    </div>
+                    <small class="text-muted">
+                      <% if (location.geolocation && location.geolocation.distance) { %>
+                        <%= location.geolocation.distance.toFixed(1) %> miles
+                      <% } %>
+                    </small>
+                  </div>
+                </label>
+              <% }); %>
+            </div>
+            <div class="d-grid gap-2">
+              <button type="submit" class="btn btn-success btn-lg">Select Store</button>
+            </div>
+          </form>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

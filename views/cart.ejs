@@ -1,0 +1,101 @@
+<%- include('partials/header') %>
+
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-header bg-success text-white">
+        <h2 class="text-center mb-0">Your Kroger Cart</h2>
+      </div>
+      <div class="card-body">
+        <% if (typeof cart !== 'undefined' && cart.items && cart.items.length > 0) { %>
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Price</th>
+                  <th>Quantity</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% cart.items.forEach(item => { %>
+                  <tr>
+                    <td>
+                      <div class="d-flex align-items-center">
+                        <% if (item.product.images && item.product.images.length > 0) { %>
+                          <img 
+                            src="<%= item.product.images[0].sizes.find(s => s.size === 'thumbnail')?.url || item.product.images[0].sizes[0]?.url %>" 
+                            alt="<%= item.product.description %>"
+                            class="me-2"
+                            style="max-width: 50px; max-height: 50px;"
+                          >
+                        <% } %>
+                        <div>
+                          <strong><%= item.product.description %></strong>
+                          <div class="text-muted">
+                            <small><%= item.product.brand %></small>
+                            <% if (item.product.size) { %>
+                              <small> - <%= item.product.size %></small>
+                            <% } %>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <% if (item.product.price) { %>
+                        $<%= item.product.price.regular.toFixed(2) %>
+                      <% } else { %>
+                        N/A
+                      <% } %>
+                    </td>
+                    <td><%= item.quantity %></td>
+                    <td>
+                      <% if (item.product.price) { %>
+                        $<%= (item.product.price.regular * item.quantity).toFixed(2) %>
+                      <% } else { %>
+                        N/A
+                      <% } %>
+                    </td>
+                  </tr>
+                <% }); %>
+              </tbody>
+              <tfoot>
+                <tr class="table-active">
+                  <th colspan="3">Total</th>
+                  <th>
+                    <% if (cart.totalPrice) { %>
+                      $<%= cart.totalPrice.toFixed(2) %>
+                    <% } else { %>
+                      $<%= cart.items.reduce((total, item) => {
+                        return total + (item.product.price ? item.product.price.regular * item.quantity : 0);
+                      }, 0).toFixed(2) %>
+                    <% } %>
+                  </th>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          
+          <div class="d-grid gap-2 mt-4">
+            <a href="https://www.kroger.com/cart" target="_blank" class="btn btn-success btn-lg">
+              Checkout on Kroger.com
+            </a>
+            <a href="/groceries/list" class="btn btn-primary">
+              Back to Grocery List
+            </a>
+          </div>
+        <% } else { %>
+          <div class="alert alert-info">
+            <h4 class="alert-heading">Your cart is empty!</h4>
+            <p>You haven't added any items to your Kroger cart yet.</p>
+            <hr>
+            <p class="mb-0">Go to the <a href="/groceries/list">Grocery List</a> page to add items to your cart.</p>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

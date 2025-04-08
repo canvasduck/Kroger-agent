@@ -1,0 +1,38 @@
+<%- include('partials/header') %>
+
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header bg-primary text-white">
+        <h2 class="text-center mb-0">Login with Kroger</h2>
+      </div>
+      <div class="card-body">
+        <div class="text-center mb-4">
+          <img src="https://www.kroger.com/_errors/images/kroger.png" alt="Kroger Logo" class="img-fluid" style="max-width: 200px;">
+          <p class="mt-3">Connect your Kroger account to use the Grocery Assistant</p>
+        </div>
+        
+        <div class="d-grid gap-2">
+          <a href="/auth/kroger" class="btn btn-primary btn-lg">
+            Login with Kroger
+          </a>
+        </div>
+        
+        <div class="mt-4">
+          <div class="alert alert-info">
+            <h5>How it works:</h5>
+            <ol>
+              <li>Login with your Kroger account</li>
+              <li>Select your preferred store location</li>
+              <li>Enter your grocery list</li>
+              <li>Our AI assistant will find the best products and add them to your cart</li>
+              <li>Review your cart and checkout on Kroger's website</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

@@ -1,0 +1,174 @@
+<%- include('partials/header') %>
+
+<div class="row">
+  <div class="col-md-7">
+    <div class="card mb-4">
+      <div class="card-header bg-primary text-white">
+        <h2 class="mb-0">Enter Your Grocery List</h2>
+      </div>
+      <div class="card-body">
+        <form action="/groceries/process" method="POST">
+          <div class="mb-3">
+            <label for="groceryList" class="form-label">Enter items one per line or as a comma-separated list:</label>
+            <textarea 
+              class="form-control" 
+              id="groceryList" 
+              name="groceryList" 
+              rows="10" 
+              placeholder="Example:
+2 gallons of organic milk
+1 loaf of whole wheat bread
+6 organic apples
+Cheerios cereal
+Organic spinach"
+              required
+            ></textarea>
+          </div>
+          <div class="d-grid gap-2">
+            <button type="submit" class="btn btn-primary btn-lg">Process Grocery List</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    
+    <% if (typeof processingStatus !== 'undefined' && processingStatus) { %>
+      <div class="card">
+        <div class="card-header <%= processingStatus === 'success' ? 'bg-success' : 'bg-danger' %> text-white">
+          <h3 class="mb-0">Processing Results</h3>
+        </div>
+        <div class="card-body">
+          <% if (processingStatus === 'error' && typeof processingResults === 'string') { %>
+            <div class="alert alert-danger">
+              <%= processingResults %>
+            </div>
+          <% } else if (processingStatus === 'success' && Array.isArray(processingResults)) { %>
+            <div class="list-group">
+              <% processingResults.forEach(result => { %>
+                <div class="list-group-item">
+                  <div class="d-flex w-100 justify-content-between">
+                    <h5 class="mb-1"><%= result.item.name %> (Qty: <%= result.item.quantity %>)</h5>
+                    <% if (result.status === 'added_to_cart') { %>
+                      <span class="badge bg-success">Added to Cart</span>
+                    <% } else if (result.status === 'not_found') { %>
+                      <span class="badge bg-warning text-dark">Not Found</span>
+                    <% } else { %>
+                      <span class="badge bg-danger">Error</span>
+                    <% } %>
+                  </div>
+                  <p class="mb-1">
+                    <% if (result.item.preferences) { %>
+                      <small class="text-muted">Preferences: <%= result.item.preferences %></small><br>
+                    <% } %>
+                    <%= result.message %>
+                  </p>
+                  <% if (result.product) { %>
+                    <div class="mt-2 d-flex align-items-center">
+                      <% if (result.product.images && result.product.images.length > 0) { %>
+                        <img 
+                          src="<%= result.product.images[0].sizes.find(s => s.size === 'thumbnail')?.url || result.product.images[0].sizes[0]?.url %>" 
+                          alt="<%= result.product.description %>"
+                          class="me-2"
+                          style="max-width: 50px; max-height: 50px;"
+                        >
+                      <% } %>
+                      <div>
+                        <strong><%= result.product.brand %></strong>
+                        <p class="mb-0"><%= result.product.description %></p>
+                        <% if (result.product.items && result.product.items.length > 0) { %>
+                          <small class="text-muted">
+                            <%= result.product.items[0].size || '' %>
+                            <% if (result.product.items[0].price) { %>
+                              - $<%= result.product.items[0].price.regular.toFixed(2) %>
+                            <% } %>
+                          </small>
+                        <% } %>
+                      </div>
+                    </div>
+                  <% } %>
+                </div>
+              <% }); %>
+            </div>
+          <% } %>
+        </div>
+      </div>
+    <% } %>
+  </div>
+  
+  <div class="col-md-5">
+    <div class="card">
+      <div class="card-header bg-success text-white">
+        <h3 class="mb-0">Your Kroger Cart</h3>
+      </div>
+      <div class="card-body">
+        <% if (typeof cart !== 'undefined' && cart.items && cart.items.length > 0) { %>
+          <div class="list-group mb-3">
+            <% cart.items.forEach(item => { %>
+              <div class="list-group-item">
+                <div class="d-flex w-100 justify-content-between">
+                  <h5 class="mb-1"><%= item.product.description %></h5>
+                  <span>Qty: <%= item.quantity %></span>
+                </div>
+                <p class="mb-1">
+                  <strong><%= item.product.brand %></strong>
+                  <% if (item.product.size) { %>
+                    - <%= item.product.size %>
+                  <% } %>
+                </p>
+                <% if (item.product.price) { %>
+                  <p class="mb-0">
+                    $<%= item.product.price.regular.toFixed(2) %> each
+                    <% if (item.quantity > 1) { %>
+                      ($<%= (item.product.price.regular * item.quantity).toFixed(2) %> total)
+                    <% } %>
+                  </p>
+                <% } %>
+              </div>
+            <% }); %>
+          </div>
+          
+          <% if (cart.totalPrice) { %>
+            <div class="alert alert-info">
+              <strong>Total: $<%= cart.totalPrice.toFixed(2) %></strong>
+            </div>
+          <% } %>
+          
+          <div class="d-grid gap-2">
+            <a href="https://www.kroger.com/cart" target="_blank" class="btn btn-success btn-lg">
+              View Cart on Kroger.com
+            </a>
+          </div>
+        <% } else { %>
+          <div class="alert alert-info">
+            Your cart is empty. Add items using the grocery list form.
+          </div>
+        <% } %>
+      </div>
+    </div>
+    
+    <div class="card mt-4">
+      <div class="card-header bg-info text-white">
+        <h3 class="mb-0">How It Works</h3>
+      </div>
+      <div class="card-body">
+        <ol>
+          <li>Enter your grocery items in the form</li>
+          <li>Our AI assistant will analyze your list</li>
+          <li>For each item, the assistant will:
+            <ul>
+              <li>Search for products at your selected Kroger store</li>
+              <li>Select the best match based on your preferences</li>
+              <li>Add the selected product to your Kroger cart</li>
+            </ul>
+          </li>
+          <li>Review the results and your updated cart</li>
+          <li>Checkout on Kroger.com when you're ready</li>
+        </ol>
+        <div class="alert alert-warning">
+          <strong>Tip:</strong> Be specific with your preferences (brand, size, organic, etc.) for better results.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer') %>
