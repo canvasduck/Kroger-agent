@@ -8,6 +8,9 @@ document.addEventListener('DOMContentLoaded', function() {
   tooltipTriggerList.map(function(tooltipTriggerEl) {
     return new bootstrap.Tooltip(tooltipTriggerEl);
   });
+  
+  // Initialize modality toggle
+  initModalityToggle();
 
   // Show loading spinner when forms are submitted
   const forms = document.querySelectorAll('form');
@@ -146,7 +149,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Configuration Modal Functionality
   const configModal = document.getElementById('configModal');
+  // Flag to track if the modal was opened from the header button
+  let openedFromHeader = false;
+  
+  // Add event listener for the header "Change Store" button
+  const headerChangeStoreBtn = document.getElementById('headerChangeStoreBtn');
+  if (headerChangeStoreBtn) {
+    headerChangeStoreBtn.addEventListener('click', function() {
+      openedFromHeader = true;
+      console.log('Modal opened from header button');
+    });
+  }
+  
+  // Reset the flag when the modal is closed
   if (configModal) {
+    configModal.addEventListener('hidden.bs.modal', function() {
+      openedFromHeader = false;
+      console.log('Modal closed, reset openedFromHeader flag');
+    });
+    
     // Display current store information in the config modal
     const currentStoreDisplay = document.getElementById('currentStoreDisplay');
     if (currentStoreDisplay) {
@@ -278,6 +299,18 @@ document.addEventListener('DOMContentLoaded', function() {
               setTimeout(() => {
                 successAlert.remove();
               }, 3000);
+              
+              // If opened from header, keep the modal open
+              // Otherwise, close the modal (default behavior)
+              if (!openedFromHeader) {
+                // Close the modal programmatically
+                const modalInstance = bootstrap.Modal.getInstance(configModal);
+                if (modalInstance) {
+                  modalInstance.hide();
+                }
+              } else {
+                console.log('Modal opened from header, keeping it open after store selection');
+              }
             }
           })
           .catch(error => {
@@ -285,5 +318,72 @@ document.addEventListener('DOMContentLoaded', function() {
           });
       });
     }
+  }
+  
+  // Function to initialize and handle the modality toggle
+  function initModalityToggle() {
+    const modalityToggle = document.getElementById('modalityToggle');
+    if (!modalityToggle) return;
+    
+    const pickupLabel = modalityToggle.parentElement.previousElementSibling;
+    const deliveryLabel = modalityToggle.parentElement.nextElementSibling;
+    
+    // Get stored modality preference or default to DELIVERY
+    const storedModality = localStorage.getItem('krogerModality') || 'DELIVERY';
+    
+    // Set initial toggle state based on stored preference
+    if (storedModality === 'DELIVERY') {
+      modalityToggle.checked = true;
+      deliveryLabel.classList.add('active');
+      pickupLabel.classList.remove('active');
+    } else {
+      modalityToggle.checked = false;
+      pickupLabel.classList.add('active');
+      deliveryLabel.classList.remove('active');
+    }
+    
+    // Sync the stored modality with the server on page load
+    fetch(`/groceries/update-modality?modality=${storedModality}`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          console.log('Server session initialized with modality:', storedModality);
+        }
+      })
+      .catch(error => {
+        console.error('Error initializing modality on server:', error);
+      });
+    
+    // Handle toggle changes
+    modalityToggle.addEventListener('change', function() {
+      const modality = this.checked ? 'DELIVERY' : 'PICKUP';
+      
+      // Update active label styling
+      if (modality === 'DELIVERY') {
+        deliveryLabel.classList.add('active');
+        pickupLabel.classList.remove('active');
+      } else {
+        pickupLabel.classList.add('active');
+        deliveryLabel.classList.remove('active');
+      }
+      
+      // Store preference in localStorage
+      localStorage.setItem('krogerModality', modality);
+      console.log(`Modality set to: ${modality}`);
+      
+      // Update the server-side session with the new modality
+      fetch(`/groceries/update-modality?modality=${modality}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            console.log('Server session updated with modality:', modality);
+          } else {
+            console.error('Failed to update server session with modality');
+          }
+        })
+        .catch(error => {
+          console.error('Error updating modality on server:', error);
+        });
+    });
   }
 });

@@ -48,11 +48,12 @@ class KrogerService {
    * Add an item to the user's cart
    * @param {string} upc - Product UPC
    * @param {number} quantity - Quantity to add
+   * @param {string} modality - Shopping modality ("DELIVERY" or "PICKUP")
    * @returns {Promise<Object>} - Updated cart object
    */
-  async addToCart(upc, quantity = 1) {
+  async addToCart(upc, quantity = 1, modality = "DELIVERY") {
     try {
-      console.log(`Adding item to cart - UPC: ${upc}, Quantity: ${quantity}`);
+      console.log(`Adding item to cart - UPC: ${upc}, Quantity: ${quantity}, Modality: ${modality}`);
       
       // IMPORTANT: Updated endpoint to match Kroger API documentation
       // Changed from ${kroger.endpoints.cart}/active/items to ${kroger.endpoints.cart}/add
@@ -60,13 +61,13 @@ class KrogerService {
       console.log('Cart endpoint:', endpoint);
       
       // Log the request payload
-      // Added modality: "PICKUP" as shown in the API documentation
+      // Use the provided modality or default to "DELIVERY"
       const payload = {
         items: [
           {
             upc,
             quantity,
-            modality: "DELIVERY"  // Added this field from the API docs
+            modality: modality  // Use the provided modality parameter
           }
         ]
       };

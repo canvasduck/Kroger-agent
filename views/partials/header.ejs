@@ -14,26 +14,6 @@
       <a class="navbar-brand" href="/">Grocery Assistant</a>
       
       <!-- Menu dropdown for all users -->
-      <div class="dropdown d-inline-block me-auto">
-        <button class="btn btn-primary dropdown-toggle" type="button" id="menuDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-          <i class="bi bi-gear"></i> Menu
-        </button>
-        <ul class="dropdown-menu" aria-labelledby="menuDropdown">
-          <% if (typeof session !== 'undefined' && session.krogerToken) { %>
-            <li><a class="dropdown-item" href="/groceries/list">Grocery List</a></li>
-            <li><a class="dropdown-item" href="/groceries/cart">View Cart</a></li>
-            <li><a class="dropdown-item" href="/groceries/locations">Change Store</a></li>
-            <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#configModal">Configuration</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item" href="/auth/logout">Logout</a></li>
-          <% } else { %>
-            <li><a class="dropdown-item" href="/auth/login">Login</a></li>
-            <!-- Add Configuration option for testing -->
-            <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#configModal">Configuration</a></li>
-          <% } %>
-        </ul>
-      </div>
-      
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
         <span class="navbar-toggler-icon"></span>
       </button>
@@ -41,20 +21,20 @@
         <ul class="navbar-nav ms-auto">
           <% if (typeof session !== 'undefined' && session.krogerToken) { %>
             <li class="nav-item">
-              <a class="nav-link" href="/groceries/list">Grocery List</a>
+              <div class="modality-toggle-container nav-link">
+                <span class="modality-label">Pickup</span>
+                <label class="modality-toggle">
+                  <input type="checkbox" id="modalityToggle">
+                  <span class="modality-slider"></span>
+                </label>
+                <span class="modality-label">Delivery</span>
+              </div>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="/groceries/cart">View Cart</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="/groceries/locations">Change Store</a>
+              <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#configModal" id="headerChangeStoreBtn">Change Store</a>
             </li>
             <li class="nav-item">
               <a class="nav-link" href="/auth/logout">Logout</a>
-            </li>
-          <% } else { %>
-            <li class="nav-item">
-              <a class="nav-link" href="/auth/login">Login</a>
             </li>
           <% } %>
         </ul>

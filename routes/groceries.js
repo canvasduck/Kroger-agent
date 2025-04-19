@@ -143,7 +143,11 @@ router.post('/process', isAuthenticated, withKrogerService, async (req, res) => 
         console.log('- Token expiry:', new Date(req.session.krogerTokenExpiry).toISOString());
         console.log('- Current time:', new Date().toISOString());
         
-        await req.krogerService.addToCart(bestMatch.upc, groceryItem.quantity);
+        // Get modality from session or default to "DELIVERY"
+        const modality = req.session.modality || "DELIVERY";
+        console.log(`Using shopping modality: ${modality}`);
+        
+        await req.krogerService.addToCart(bestMatch.upc, groceryItem.quantity, modality);
         
         // Find the product details from search results
         const selectedProduct = searchResults.find(p => p.upc === bestMatch.upc);
@@ -253,5 +257,18 @@ router.get('/check-stored-location', isAuthenticated, (req, res) => {
   return res.json({ success: false });
 });
 
+
+// Update shopping modality
+router.get('/update-modality', isAuthenticated, (req, res) => {
+  const { modality } = req.query;
+  
+  if (modality && (modality === 'DELIVERY' || modality === 'PICKUP')) {
+    req.session.modality = modality;
+    console.log('Shopping modality set in session:', modality);
+    return res.json({ success: true });
+  }
+  
+  return res.json({ success: false });
+});
 
 module.exports = router;

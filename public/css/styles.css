@@ -20,6 +20,13 @@ body {
   font-weight: bold;
 }
 
+.nav-link {
+  border: 1px solid;
+  color: white;
+  margin: 0 4px;
+  border-radius: 6px;
+}
+
 /* Card styling */
 .card {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -164,4 +171,70 @@ textarea.form-control {
 
 #storeListGroup .list-group-item input[type="radio"]:checked + strong {
   color: #0073e6;
+}
+
+/* Modality Toggle Switch Styles */
+.modality-toggle-container {
+  display: flex;
+  align-items: center;
+}
+
+.modality-label {
+  color: white;
+  margin: 0 5px;
+}
+
+.modality-toggle {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
+}
+
+.modality-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.modality-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #000264; /* PICKUP color (green) */
+  transition: .4s;
+  border-radius: 24px;
+}
+
+.modality-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .modality-slider {
+  background-color: #000264; /* DELIVERY color (blue) */
+}
+
+input:focus + .modality-slider {
+  box-shadow: 0 0 1px #000264;
+}
+
+input:checked + .modality-slider:before {
+  transform: translateX(26px);
+}
+
+/* Active modality label styling */
+.modality-toggle-container .active {
+  color: white;
+  font-weight: 800;
 }
