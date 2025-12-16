@@ -1,17 +1,36 @@
 /**
  * LLM Service
  *
- * Provides functions for interacting with the Anthropic Claude API to process grocery lists.
+ * Provides functions for interacting with OpenRouter API to process grocery lists.
  */
 
-const Anthropic = require('@anthropic-ai/sdk');
-const { anthropic: anthropicConfig } = require('../config/config');
+const OpenAI = require('openai');
+const { openrouter: openrouterConfig } = require('../config/config');
 
 class LLMService {
   constructor() {
-    this.anthropic = new Anthropic({
-      apiKey: anthropicConfig.apiKey,
+    this.openai = new OpenAI({
+      apiKey: openrouterConfig.apiKey,
+      baseURL: openrouterConfig.baseURL,
+      defaultHeaders: {
+        'HTTP-Referer': openrouterConfig.siteUrl,
+        'X-Title': openrouterConfig.appName,
+      },
     });
+  }
+
+  /**
+   * Extract JSON from markdown code blocks if present
+   * @param {string} text - Response text that may contain markdown
+   * @returns {string} - Clean JSON string
+   */
+  extractJSON(text) {
+    // Remove markdown code blocks if present
+    const codeBlockMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+    if (codeBlockMatch) {
+      return codeBlockMatch[1].trim();
+    }
+    return text.trim();
   }
 
   /**
@@ -22,17 +41,20 @@ class LLMService {
   async processGroceryList(groceryList) {
     try {
       // Add debugging to see what parameters are being sent
-      console.log('Sending request to Anthropic API with parameters:', {
-        model: anthropicConfig.model,
-        max_tokens: anthropicConfig.maxTokens,
-        temperature: anthropicConfig.temperature
+      console.log('Sending request to OpenRouter API with parameters:', {
+        model: openrouterConfig.model,
+        max_tokens: openrouterConfig.maxTokens,
+        temperature: openrouterConfig.temperature
       });
       
-      const response = await this.anthropic.messages.create({
-        model: anthropicConfig.model,
-        max_tokens: anthropicConfig.maxTokens,
-        temperature: anthropicConfig.temperature,
-        system: `You are a helpful grocery shopping assistant. Your task is to analyze a grocery list and convert it into a structured format.
+      const response = await this.openai.chat.completions.create({
+        model: openrouterConfig.model,
+        max_tokens: openrouterConfig.maxTokens,
+        temperature: openrouterConfig.temperature,
+        messages: [
+          {
+            role: 'system',
+            content: `You are a helpful grocery shopping assistant. Your task is to analyze a grocery list and convert it into a structured format.
             For each item in the list:
             1. Identify the product name in a standardized format (e.g., "milk" becomes "Milk")
             2. Determine the likely quantity if specified or default to 1
@@ -50,24 +72,24 @@ class LLMService {
               {"name": "Milk", "quantity": 1, "preferences": "Organic, 2%"},
               {"name": "Bread", "quantity": 2, "preferences": "Whole wheat, sliced"},
               {"name": "Apples", "quantity": 6, "preferences": "Honeycrisp, organic"}
-            ]`,
-        messages: [
+            ]`
+          },
           {
             role: 'user',
             content: groceryList
           }
         ]
-        // Removed response_format parameter as it may not be supported in this SDK version
       });
 
-      console.log('Received response from Anthropic API:', response.content);
+      console.log('Received response from OpenRouter API:', response.choices[0].message.content);
       
       try {
-        const result = JSON.parse(response.content[0].text);
+        const cleanedResponse = this.extractJSON(response.choices[0].message.content);
+        const result = JSON.parse(cleanedResponse);
         return Array.isArray(result) ? result : [];
       } catch (parseError) {
         console.error('Error parsing JSON response:', parseError);
-        console.log('Raw response content:', response.content);
+        console.log('Raw response content:', response.choices[0].message.content);
         return [];
       }
     } catch (error) {
@@ -94,11 +116,14 @@ class LLMService {
     try {
       const itemsJson = JSON.stringify(groceryItems);
       
-      const response = await this.anthropic.messages.create({
-        model: anthropicConfig.model,
-        max_tokens: anthropicConfig.maxTokens,
+      const response = await this.openai.chat.completions.create({
+        model: openrouterConfig.model,
+        max_tokens: openrouterConfig.maxTokens,
         temperature: 0.3, // Lower temperature for more consistent results
-        system: `You are a helpful grocery shopping assistant. Your task is to convert grocery items into effective search queries for the Kroger API.
+        messages: [
+          {
+            role: 'system',
+            content: `You are a helpful grocery shopping assistant. Your task is to convert grocery items into effective search queries for the Kroger API.
             Create search queries that are likely to return relevant results from a grocery store product search API.
             
             For each item, create a search query that:
@@ -118,22 +143,22 @@ class LLMService {
               {"itemIndex": 0, "query": "organic 2% milk"},
               {"itemIndex": 1, "query": "whole wheat sliced bread"},
               {"itemIndex": 2, "query": "honeycrisp organic apples"}
-            ]`,
-        messages: [
+            ]`
+          },
           {
             role: 'user',
             content: itemsJson
           }
         ]
-        // Removed response_format parameter
       });
 
       try {
-        const result = JSON.parse(response.content[0].text);
+        const cleanedResponse = this.extractJSON(response.choices[0].message.content);
+        const result = JSON.parse(cleanedResponse);
         return Array.isArray(result) ? result : [];
       } catch (parseError) {
         console.error('Error parsing JSON response:', parseError);
-        console.log('Raw response content:', response.content);
+        console.log('Raw response content:', response.choices[0].message.content);
         return [];
       }
     } catch (error) {
@@ -172,11 +197,14 @@ class LLMService {
         price: product.items?.[0]?.price?.regular || 0,
       })));
       
-      const response = await this.anthropic.messages.create({
-        model: anthropicConfig.model,
-        max_tokens: anthropicConfig.maxTokens,
+      const response = await this.openai.chat.completions.create({
+        model: openrouterConfig.model,
+        max_tokens: openrouterConfig.maxTokens,
         temperature: 0.3, // Lower temperature for more consistent results
-        system: `You are a helpful grocery shopping assistant. Your task is to select the best product match from search results based on a user's grocery item request.
+        messages: [
+          {
+            role: 'system',
+            content: `You are a helpful grocery shopping assistant. Your task is to select the best product match from search results based on a user's grocery item request.
             
             Analyze the grocery item and the search results, then select the product that best matches the user's preferences.
             Consider factors like:
@@ -197,26 +225,92 @@ class LLMService {
             {
               "upc": "0001111042195",
               "reason": "Selected organic 2% milk that matches the brand preference"
-            }`,
-        messages: [
+            }`
+          },
           {
             role: 'user',
             content: `Grocery item: ${itemJson}\n\nSearch results: ${resultsJson}`
           }
         ]
-        // Removed response_format parameter
       });
 
       try {
-        return JSON.parse(response.content[0].text);
+        const cleanedResponse = this.extractJSON(response.choices[0].message.content);
+        return JSON.parse(cleanedResponse);
       } catch (parseError) {
         console.error('Error parsing JSON response:', parseError);
-        console.log('Raw response content:', response.content);
+        console.log('Raw response content:', response.choices[0].message.content);
         return null;
       }
     } catch (error) {
       console.error('Error selecting best product with LLM:', error);
       // Log more detailed error information
+      if (error.response) {
+        console.error('API Error Response:', {
+          status: error.status,
+          message: error.message,
+          type: error.type,
+          body: error.response
+        });
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Process a photo of a handwritten grocery list using vision-capable LLM
+   * @param {string} base64Image - Base64 encoded image
+   * @param {string} mimeType - Image MIME type (e.g., 'image/jpeg')
+   * @param {string} customModel - Optional custom model override
+   * @returns {Promise<string>} - Extracted grocery list as text
+   */
+  async processGroceryPhoto(base64Image, mimeType, customModel = null) {
+    try {
+      // Use custom model if provided, otherwise fall back to config with vision capability
+      const model = customModel || openrouterConfig.visionModel || 'anthropic/claude-sonnet-4.5';
+      
+      console.log('Processing photo with vision model:', model);
+      
+      const response = await this.openai.chat.completions.create({
+        model: model,
+        max_tokens: openrouterConfig.maxTokens || 1000,
+        temperature: 0.3, // Lower temperature for more accurate extraction
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: `Please analyze this image of a handwritten grocery list and extract all the items.
+              
+Format the output as a simple list with one item per line.
+Include quantities if visible (e.g., "2 gallons milk").
+Include any brand names, sizes, or preferences if written.
+Only output the grocery items, nothing else.
+
+Example format:
+2 gallons organic milk
+1 loaf whole wheat bread
+6 apples
+Cheerios cereal`
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:${mimeType};base64,${base64Image}`
+                }
+              }
+            ]
+          }
+        ]
+      });
+
+      const extractedText = response.choices[0].message.content.trim();
+      console.log('Extracted grocery list from photo:', extractedText);
+      
+      return extractedText;
+    } catch (error) {
+      console.error('Error processing grocery photo with LLM:', error);
       if (error.response) {
         console.error('API Error Response:', {
           status: error.status,

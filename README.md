@@ -15,7 +15,7 @@ A Node.js server-side application that utilizes Kroger's API and an LLM agent to
 - Node.js (v14 or higher)
 - npm (v6 or higher)
 - Kroger Developer Account with API credentials
-- OpenAI API key
+- OpenRouter API key
 
 ## Installation
 
@@ -42,8 +42,10 @@ A Node.js server-side application that utilizes Kroger's API and an LLM agent to
    KROGER_CLIENT_SECRET=your-kroger-client-secret
    KROGER_REDIRECT_URI=http://localhost:3000/auth/callback
 
-   # OpenAI Configuration
-   OPENAI_API_KEY=your-openai-api-key
+   # OpenRouter Configuration
+   OPENROUTER_API_KEY=your-openrouter-api-key
+   OPENROUTER_APP_NAME=kroger-grocery-assistant
+   OPENROUTER_SITE_URL=http://localhost:3000
    ```
 
 4. Start the server:
@@ -106,11 +108,13 @@ For more information on the Kroger API, visit the [Kroger Developer Portal](http
 
 ## LLM Agent
 
-The LLM agent uses OpenAI's GPT models to:
+The LLM agent uses OpenRouter (with Claude models) to:
 
 1. Process and standardize grocery list items
 2. Generate effective search queries for the Kroger API
 3. Select the best product match based on user preferences
+
+OpenRouter provides access to multiple AI models through a unified API. This application uses Claude models via OpenRouter for intelligent grocery list processing.
 
 ## License
 
@@ -119,4 +123,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Acknowledgments
 
 - Kroger for providing the API
-- OpenAI for the LLM capabilities
+- OpenRouter for AI model access
+- Anthropic for Claude models
