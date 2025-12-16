@@ -20,6 +20,20 @@ class LLMService {
   }
 
   /**
+   * Extract JSON from markdown code blocks if present
+   * @param {string} text - Response text that may contain markdown
+   * @returns {string} - Clean JSON string
+   */
+  extractJSON(text) {
+    // Remove markdown code blocks if present
+    const codeBlockMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+    if (codeBlockMatch) {
+      return codeBlockMatch[1].trim();
+    }
+    return text.trim();
+  }
+
+  /**
    * Process a grocery list using the LLM to standardize and categorize items
    * @param {string} groceryList - Raw grocery list text from user
    * @returns {Promise<Array>} - Array of processed grocery items
@@ -70,7 +84,8 @@ class LLMService {
       console.log('Received response from OpenRouter API:', response.choices[0].message.content);
       
       try {
-        const result = JSON.parse(response.choices[0].message.content);
+        const cleanedResponse = this.extractJSON(response.choices[0].message.content);
+        const result = JSON.parse(cleanedResponse);
         return Array.isArray(result) ? result : [];
       } catch (parseError) {
         console.error('Error parsing JSON response:', parseError);
@@ -138,7 +153,8 @@ class LLMService {
       });
 
       try {
-        const result = JSON.parse(response.choices[0].message.content);
+        const cleanedResponse = this.extractJSON(response.choices[0].message.content);
+        const result = JSON.parse(cleanedResponse);
         return Array.isArray(result) ? result : [];
       } catch (parseError) {
         console.error('Error parsing JSON response:', parseError);
@@ -219,7 +235,8 @@ class LLMService {
       });
 
       try {
-        return JSON.parse(response.choices[0].message.content);
+        const cleanedResponse = this.extractJSON(response.choices[0].message.content);
+        return JSON.parse(cleanedResponse);
       } catch (parseError) {
         console.error('Error parsing JSON response:', parseError);
         console.log('Raw response content:', response.choices[0].message.content);

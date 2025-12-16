@@ -7,14 +7,14 @@
         <h2 class="mb-0">Enter Your Grocery List</h2>
       </div>
       <div class="card-body">
-        <form action="/groceries/process" method="POST">
+        <form id="groceryListForm" action="/groceries/process" method="POST">
           <div class="mb-3">
             <label for="groceryList" class="form-label">Enter items one per line or as a comma-separated list:</label>
-            <textarea 
-              class="form-control" 
-              id="groceryList" 
-              name="groceryList" 
-              rows="10" 
+            <textarea
+              class="form-control"
+              id="groceryList"
+              name="groceryList"
+              rows="10"
               placeholder="Example:
 2 gallons of organic milk
 1 loaf of whole wheat bread
@@ -24,74 +24,46 @@ Organic spinach"
               required
             ></textarea>
           </div>
+          
+          <!-- Progress Bar (hidden initially) -->
+          <div id="progressContainer" class="mb-3 d-none">
+            <div class="card">
+              <div class="card-body">
+                <h5 class="card-title">Processing Your Grocery List</h5>
+                <div class="progress mb-2" style="height: 25px;">
+                  <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated"
+                       role="progressbar"
+                       style="width: 0%;"
+                       aria-valuenow="0"
+                       aria-valuemin="0"
+                       aria-valuemax="100">0%</div>
+                </div>
+                <p id="progressMessage" class="mb-0 text-muted">Initializing...</p>
+                <small id="progressDetails" class="text-muted"></small>
+              </div>
+            </div>
+          </div>
+          
           <div class="d-grid gap-2">
-            <button type="submit" class="btn btn-primary btn-lg">Process Grocery List</button>
+            <button type="submit" id="submitBtn" class="btn btn-primary btn-lg">Process Grocery List</button>
           </div>
         </form>
       </div>
     </div>
     
-    <% if (typeof processingStatus !== 'undefined' && processingStatus) { %>
+    <!-- Results Container (populated via JavaScript) -->
+    <div id="resultsContainer" class="d-none">
       <div class="card">
-        <div class="card-header <%= processingStatus === 'success' ? 'bg-success' : 'bg-danger' %> text-white">
+        <div class="card-header bg-success text-white">
           <h3 class="mb-0">Results</h3>
         </div>
         <div class="card-body">
-          <% if (processingStatus === 'error' && typeof processingResults === 'string') { %>
-            <div class="alert alert-danger">
-              <%= processingResults %>
-            </div>
-          <% } else if (processingStatus === 'success' && Array.isArray(processingResults)) { %>
-            <div class="list-group">
-              <% processingResults.forEach(result => { %>
-                <div class="list-group-item">
-                  <div class="d-flex w-100 justify-content-between">
-                    <h5 class="mb-1"><%= result.item.name %> (Qty: <%= result.item.quantity %>)</h5>
-                    <% if (result.status === 'added_to_cart') { %>
-                      <span class="badge bg-success">Added to Cart</span>
-                    <% } else if (result.status === 'not_found') { %>
-                      <span class="badge bg-warning text-dark">Not Found</span>
-                    <% } else { %>
-                      <span class="badge bg-danger">Error</span>
-                    <% } %>
-                  </div>
-                  <p class="mb-1">
-                    <% if (result.item.preferences) { %>
-                      <small class="text-muted">Preferences: <%= result.item.preferences %></small><br>
-                    <% } %>
-                    <%= result.message %>
-                  </p>
-                  <% if (result.product) { %>
-                    <div class="mt-2 d-flex align-items-center">
-                      <% if (result.product.images && result.product.images.length > 0) { %>
-                        <img 
-                          src="<%= result.product.images[0].sizes.find(s => s.size === 'thumbnail')?.url || result.product.images[0].sizes[0]?.url %>" 
-                          alt="<%= result.product.description %>"
-                          class="me-2"
-                          style="max-width: 50px; max-height: 50px;"
-                        >
-                      <% } %>
-                      <div>
-                        <strong><%= result.product.brand %></strong>
-                        <p class="mb-0"><%= result.product.description %></p>
-                        <% if (result.product.items && result.product.items.length > 0) { %>
-                          <small class="text-muted">
-                            <%= result.product.items[0].size || '' %>
-                            <% if (result.product.items[0].price) { %>
-                              - $<%= result.product.items[0].price.regular.toFixed(2) %>
-                            <% } %>
-                          </small>
-                        <% } %>
-                      </div>
-                    </div>
-                  <% } %>
-                </div>
-              <% }); %>
-            </div>
-          <% } %>
+          <div id="resultsList" class="list-group">
+            <!-- Results will be inserted here via JavaScript -->
+          </div>
         </div>
       </div>
-    <% } %>
+    </div>
   </div>
 
 </div>

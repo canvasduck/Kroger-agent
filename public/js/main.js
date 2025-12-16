@@ -12,8 +12,8 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initialize modality toggle
   initModalityToggle();
 
-  // Show loading spinner when forms are submitted
-  const forms = document.querySelectorAll('form');
+  // Show loading spinner when forms are submitted (except grocery list form)
+  const forms = document.querySelectorAll('form:not(#groceryListForm)');
   const spinnerContainer = document.createElement('div');
   spinnerContainer.className = 'spinner-container';
   spinnerContainer.innerHTML = `
@@ -39,16 +39,16 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // Handle grocery list form
-  const groceryListForm = document.getElementById('groceryList');
-  if (groceryListForm) {
+  const groceryListTextarea = document.getElementById('groceryList');
+  if (groceryListTextarea) {
     // Auto-resize textarea as user types
-    groceryListForm.addEventListener('input', function() {
+    groceryListTextarea.addEventListener('input', function() {
       this.style.height = 'auto';
       this.style.height = (this.scrollHeight) + 'px';
     });
 
     // Parse clipboard data when pasted into textarea
-    groceryListForm.addEventListener('paste', function(e) {
+    groceryListTextarea.addEventListener('paste', function(e) {
       // Allow default paste behavior
       setTimeout(() => {
         // Auto-resize after paste
@@ -56,6 +56,212 @@ document.addEventListener('DOMContentLoaded', function() {
         this.style.height = (this.scrollHeight) + 'px';
       }, 0);
     });
+  }
+
+  // Handle grocery list form submission with SSE progress tracking
+  const groceryListForm = document.getElementById('groceryListForm');
+  if (groceryListForm) {
+    groceryListForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const groceryList = document.getElementById('groceryList').value;
+      const submitBtn = document.getElementById('submitBtn');
+      const progressContainer = document.getElementById('progressContainer');
+      const progressBar = document.getElementById('progressBar');
+      const progressMessage = document.getElementById('progressMessage');
+      const progressDetails = document.getElementById('progressDetails');
+      const resultsContainer = document.getElementById('resultsContainer');
+      const resultsList = document.getElementById('resultsList');
+      
+      // Disable form and show progress
+      submitBtn.disabled = true;
+      progressContainer.classList.remove('d-none');
+      resultsContainer.classList.add('d-none');
+      
+      try {
+        // Submit the grocery list
+        const response = await fetch('/groceries/process', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ groceryList })
+        });
+        
+        const data = await response.json();
+        
+        if (data.error) {
+          alert(data.error);
+          submitBtn.disabled = false;
+          progressContainer.classList.add('d-none');
+          return;
+        }
+        
+        const processId = data.processId;
+        
+        // Connect to SSE for progress updates
+        const eventSource = new EventSource(`/groceries/progress/${processId}`);
+        
+        eventSource.onmessage = function(event) {
+          const update = JSON.parse(event.data);
+          
+          if (update.type === 'connected') {
+            console.log('Connected to progress stream:', update.processId);
+          } else if (update.type === 'progress') {
+            // Update progress bar
+            const percentage = Math.round((update.step / update.totalSteps) * 100);
+            progressBar.style.width = `${percentage}%`;
+            progressBar.textContent = `${percentage}%`;
+            progressBar.setAttribute('aria-valuenow', percentage);
+            
+            // Update message
+            progressMessage.textContent = update.message;
+            
+            // Update details if available
+            if (update.currentItem && update.totalItems) {
+              progressDetails.textContent = `Processing item ${update.currentItem} of ${update.totalItems}`;
+            } else if (update.actualItems) {
+              progressDetails.textContent = `Processing ${update.actualItems} items`;
+            } else if (update.estimatedItems) {
+              progressDetails.textContent = `Estimated ${update.estimatedItems} items`;
+            }
+          } else if (update.type === 'complete') {
+            // Close event source
+            eventSource.close();
+            
+            // Update to 100%
+            progressBar.style.width = '100%';
+            progressBar.textContent = '100%';
+            progressBar.setAttribute('aria-valuenow', 100);
+            progressMessage.textContent = update.message;
+            
+            // Display results
+            displayResults(update.results);
+            
+            // Re-enable submit button and hide progress
+            submitBtn.disabled = false;
+            
+            // Hide progress after a short delay
+            setTimeout(() => {
+              progressContainer.classList.add('d-none');
+            }, 2000);
+          } else if (update.type === 'error') {
+            // Close event source
+            eventSource.close();
+            
+            // Show error
+            alert(update.message);
+            
+            // Re-enable submit button
+            submitBtn.disabled = false;
+            
+            // Hide progress
+            progressContainer.classList.add('d-none');
+          }
+        };
+        
+        eventSource.onerror = function(error) {
+          console.error('SSE error:', error);
+          eventSource.close();
+          
+          // Re-enable submit button
+          submitBtn.disabled = false;
+          
+          // Hide progress
+          progressContainer.classList.add('d-none');
+          
+          alert('Connection lost. Please try again.');
+        };
+        
+      } catch (error) {
+        console.error('Error submitting form:', error);
+        alert('An error occurred. Please try again.');
+        
+        // Re-enable submit button
+        submitBtn.disabled = false;
+        
+        // Hide progress
+        progressContainer.classList.add('d-none');
+      }
+    });
+  }
+  
+  // Function to display results
+  function displayResults(results) {
+    const resultsContainer = document.getElementById('resultsContainer');
+    const resultsList = document.getElementById('resultsList');
+    
+    if (!results || results.length === 0) {
+      return;
+    }
+    
+    // Clear previous results
+    resultsList.innerHTML = '';
+    
+    // Add each result
+    results.forEach(result => {
+      const resultItem = document.createElement('div');
+      resultItem.className = 'list-group-item';
+      
+      let badgeClass = 'bg-danger';
+      let badgeText = 'Error';
+      
+      if (result.status === 'added_to_cart') {
+        badgeClass = 'bg-success';
+        badgeText = 'Added to Cart';
+      } else if (result.status === 'not_found') {
+        badgeClass = 'bg-warning text-dark';
+        badgeText = 'Not Found';
+      }
+      
+      let productHtml = '';
+      if (result.product) {
+        let imageHtml = '';
+        if (result.product.images && result.product.images.length > 0) {
+          const thumbnailUrl = result.product.images[0].sizes.find(s => s.size === 'thumbnail')?.url || result.product.images[0].sizes[0]?.url;
+          imageHtml = `<img src="${thumbnailUrl}" alt="${result.product.description}" class="me-2" style="max-width: 50px; max-height: 50px;">`;
+        }
+        
+        let priceHtml = '';
+        if (result.product.items && result.product.items.length > 0 && result.product.items[0].price) {
+          const size = result.product.items[0].size || '';
+          const price = result.product.items[0].price.regular.toFixed(2);
+          priceHtml = `<small class="text-muted">${size}${size && price ? ' - ' : ''}${price ? '$' + price : ''}</small>`;
+        }
+        
+        productHtml = `
+          <div class="mt-2 d-flex align-items-center">
+            ${imageHtml}
+            <div>
+              <strong>${result.product.brand}</strong>
+              <p class="mb-0">${result.product.description}</p>
+              ${priceHtml}
+            </div>
+          </div>
+        `;
+      }
+      
+      const preferencesHtml = result.item.preferences
+        ? `<small class="text-muted">Preferences: ${result.item.preferences}</small><br>`
+        : '';
+      
+      resultItem.innerHTML = `
+        <div class="d-flex w-100 justify-content-between">
+          <h5 class="mb-1">${result.item.name} (Qty: ${result.item.quantity})</h5>
+          <span class="badge ${badgeClass}">${badgeText}</span>
+        </div>
+        <p class="mb-1">
+          ${preferencesHtml}
+          ${result.message}
+        </p>
+        ${productHtml}
+      `;
+      
+      resultsList.appendChild(resultItem);
+    });
+    
+    // Show results container
+    resultsContainer.classList.remove('d-none');
   }
 
   // Handle location selection

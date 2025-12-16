@@ -79,37 +79,141 @@ router.get('/list', isAuthenticated, withKrogerService, async (req, res) => {
   }
 });
 
-// Handle grocery list submission
+// Handle grocery list submission with SSE progress updates
 router.post('/process', isAuthenticated, withKrogerService, async (req, res) => {
   const { groceryList } = req.body;
   
   if (!groceryList || !groceryList.trim()) {
-    req.session.processingStatus = 'error';
-    req.session.processingResults = 'Please enter a grocery list';
-    return res.redirect('/groceries/list');
+    return res.json({ error: 'Please enter a grocery list' });
   }
+  
+  // Generate a unique process ID
+  const processId = Date.now().toString(36) + Math.random().toString(36).substr(2);
+  
+  // Store process ID in session
+  req.session.currentProcessId = processId;
+  
+  // Return process ID immediately
+  res.json({ processId });
+  
+  // Start async processing
+  processGroceryListAsync(processId, groceryList, req.session, req.krogerService).catch(err => {
+    console.error('Error in async processing:', err);
+  });
+});
+
+// SSE endpoint for progress updates
+router.get('/progress/:processId', isAuthenticated, (req, res) => {
+  const { processId } = req.params;
+  
+  // Set headers for SSE
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  
+  // Store response object for this process
+  if (!global.progressStreams) {
+    global.progressStreams = new Map();
+  }
+  global.progressStreams.set(processId, res);
+  
+  // Send initial connection message
+  res.write(`data: ${JSON.stringify({ type: 'connected', processId })}\n\n`);
+  
+  // Clean up on client disconnect
+  req.on('close', () => {
+    global.progressStreams.delete(processId);
+    res.end();
+  });
+});
+
+// Async processing function
+async function processGroceryListAsync(processId, groceryList, session, krogerService) {
+  const sendProgress = (data) => {
+    if (global.progressStreams && global.progressStreams.has(processId)) {
+      const stream = global.progressStreams.get(processId);
+      stream.write(`data: ${JSON.stringify(data)}\n\n`);
+    }
+  };
   
   try {
     const llmService = new LLMService();
     
+    // Estimate initial steps (will be refined after first LLM call)
+    const estimatedItems = groceryList.split(/\n|,/).filter(line => line.trim()).length;
+    const totalSteps = 2 + (estimatedItems * 3);
+    
+    sendProgress({
+      type: 'progress',
+      step: 0,
+      totalSteps,
+      message: 'Starting to process your grocery list...',
+      estimatedItems
+    });
+    
     // Step 1: Process the grocery list with LLM
+    sendProgress({
+      type: 'progress',
+      step: 1,
+      totalSteps,
+      message: 'Analyzing your grocery list...'
+    });
+    
     const processedItems = await llmService.processGroceryList(groceryList);
     
+    if (!processedItems || processedItems.length === 0) {
+      sendProgress({
+        type: 'error',
+        message: 'Failed to process grocery list. Please check the format and try again.'
+      });
+      return;
+    }
+    
+    // Recalculate total steps based on actual item count
+    const actualTotalSteps = 2 + (processedItems.length * 3);
+    
+    sendProgress({
+      type: 'progress',
+      step: 1,
+      totalSteps: actualTotalSteps,
+      message: `Found ${processedItems.length} items in your list`,
+      actualItems: processedItems.length
+    });
+    
     // Step 2: Generate search queries for each item
+    sendProgress({
+      type: 'progress',
+      step: 2,
+      totalSteps: actualTotalSteps,
+      message: 'Generating search queries...'
+    });
+    
     const searchQueries = await llmService.generateSearchQueries(processedItems);
     
     // Step 3: Search for products and select the best match for each item
     const results = [];
+    let currentStep = 2;
     
-    for (const queryItem of searchQueries) {
+    for (let i = 0; i < searchQueries.length; i++) {
+      const queryItem = searchQueries[i];
       const { itemIndex, query } = queryItem;
       const groceryItem = processedItems[itemIndex];
       
       // Search for products
-      const searchResults = await req.krogerService.searchProducts(
-        query, 
-        5, 
-        req.session.locationId
+      currentStep++;
+      sendProgress({
+        type: 'progress',
+        step: currentStep,
+        totalSteps: actualTotalSteps,
+        message: `Searching for "${groceryItem.name}"...`,
+        currentItem: i + 1,
+        totalItems: searchQueries.length
+      });
+      
+      const searchResults = await krogerService.searchProducts(
+        query,
+        5,
+        session.locationId
       );
       
       if (searchResults.length === 0) {
@@ -118,10 +222,21 @@ router.post('/process', isAuthenticated, withKrogerService, async (req, res) => 
           status: 'not_found',
           message: `No products found for "${groceryItem.name}"`
         });
+        currentStep += 2; // Skip select and add steps
         continue;
       }
       
       // Select the best product match
+      currentStep++;
+      sendProgress({
+        type: 'progress',
+        step: currentStep,
+        totalSteps: actualTotalSteps,
+        message: `Selecting best match for "${groceryItem.name}"...`,
+        currentItem: i + 1,
+        totalItems: searchQueries.length
+      });
+      
       const bestMatch = await llmService.selectBestProduct(groceryItem, searchResults);
       
       if (!bestMatch || !bestMatch.upc) {
@@ -130,29 +245,26 @@ router.post('/process', isAuthenticated, withKrogerService, async (req, res) => 
           status: 'selection_failed',
           message: `Failed to select a product for "${groceryItem.name}"`
         });
+        currentStep++; // Skip add step
         continue;
       }
       
       // Add the selected product to cart
+      currentStep++;
+      sendProgress({
+        type: 'progress',
+        step: currentStep,
+        totalSteps: actualTotalSteps,
+        message: `Adding "${groceryItem.name}" to cart...`,
+        currentItem: i + 1,
+        totalItems: searchQueries.length
+      });
+      
       try {
-        console.log(`Attempting to add ${groceryItem.name} (UPC: ${bestMatch.upc}) to cart with quantity ${groceryItem.quantity}`);
+        const modality = session.modality || "DELIVERY";
+        await krogerService.addToCart(bestMatch.upc, groceryItem.quantity, modality);
         
-        // Verify token before cart operation
-        console.log('Token verification before cart operation:');
-        console.log('- Token exists:', !!req.session.krogerToken);
-        console.log('- Token expiry:', new Date(req.session.krogerTokenExpiry).toISOString());
-        console.log('- Current time:', new Date().toISOString());
-        
-        // Get modality from session or default to "DELIVERY"
-        const modality = req.session.modality || "DELIVERY";
-        console.log(`Using shopping modality: ${modality}`);
-        
-        await req.krogerService.addToCart(bestMatch.upc, groceryItem.quantity, modality);
-        
-        // Find the product details from search results
         const selectedProduct = searchResults.find(p => p.upc === bestMatch.upc);
-        
-        console.log(`Successfully added ${groceryItem.name} to cart`);
         
         results.push({
           item: groceryItem,
@@ -162,7 +274,6 @@ router.post('/process', isAuthenticated, withKrogerService, async (req, res) => 
         });
       } catch (error) {
         console.error(`Error adding ${groceryItem.name} to cart:`, error);
-        console.error('Error details:', error.response?.data || 'No response data');
         results.push({
           item: groceryItem,
           status: 'cart_error',
@@ -171,18 +282,34 @@ router.post('/process', isAuthenticated, withKrogerService, async (req, res) => 
       }
     }
     
-    // Store results in session for display
-    req.session.processingStatus = 'success';
-    req.session.processingResults = results;
+    // Send completion message
+    sendProgress({
+      type: 'complete',
+      results,
+      message: 'Processing complete!'
+    });
     
-    res.redirect('/groceries/list');
+    // Clean up stream
+    if (global.progressStreams && global.progressStreams.has(processId)) {
+      const stream = global.progressStreams.get(processId);
+      stream.end();
+      global.progressStreams.delete(processId);
+    }
   } catch (error) {
     console.error('Error processing grocery list:', error);
-    req.session.processingStatus = 'error';
-    req.session.processingResults = `Error processing grocery list: ${error.message}`;
-    res.redirect('/groceries/list');
+    sendProgress({
+      type: 'error',
+      message: `Error processing grocery list: ${error.message}`
+    });
+    
+    // Clean up stream
+    if (global.progressStreams && global.progressStreams.has(processId)) {
+      const stream = global.progressStreams.get(processId);
+      stream.end();
+      global.progressStreams.delete(processId);
+    }
   }
-});
+}
 
 // Render location selection page
 router.get('/locations', isAuthenticated, withKrogerService, (req, res) => {
