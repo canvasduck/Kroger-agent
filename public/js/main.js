@@ -54,8 +54,30 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Handle photo processing
   const photoUpload = document.getElementById('photoUpload');
+  const selectPhotoBtn = document.getElementById('selectPhotoBtn');
   const processPhotoBtn = document.getElementById('processPhotoBtn');
+  const photoFileName = document.getElementById('photoFileName');
   const groceryListTextarea = document.getElementById('groceryList');
+
+  // Custom file input button
+  if (selectPhotoBtn && photoUpload) {
+    // Trigger file input when custom button is clicked
+    selectPhotoBtn.addEventListener('click', function() {
+      photoUpload.click();
+    });
+    
+    // Show selected filename and enable process button
+    photoUpload.addEventListener('change', function() {
+      if (this.files && this.files[0]) {
+        photoFileName.classList.remove('d-none');
+        photoFileName.querySelector('span').textContent = this.files[0].name;
+        processPhotoBtn.disabled = false;
+      } else {
+        photoFileName.classList.add('d-none');
+        processPhotoBtn.disabled = true;
+      }
+    });
+  }
 
   if (processPhotoBtn && photoUpload && groceryListTextarea) {
     processPhotoBtn.addEventListener('click', async function() {

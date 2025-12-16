@@ -14,16 +14,21 @@
             <div class="d-flex gap-2">
               <input type="file"
                      id="photoUpload"
-                     class="form-control"
-                     accept="image/*"
-                     capture="environment">
+                     class="d-none"
+                     accept="image/*">
+              <button type="button"
+                      id="selectPhotoBtn"
+                      class="btn btn-outline-primary flex-fill">
+                <i class="bi bi-camera-fill"></i> Take or Upload Photo
+              </button>
               <button type="button"
                       id="processPhotoBtn"
-                      class="btn btn-secondary">
-                <i class="bi bi-camera"></i> Process Photo
+                      class="btn btn-secondary"
+                      disabled>
+                Process Photo
               </button>
             </div>
-            <small class="text-muted">Take a photo or upload an image of your handwritten grocery list</small>
+            <small id="photoFileName" class="text-muted d-none">Selected: <span></span></small>
           </div>
 
           <div class="text-center mb-3">
