@@ -8,6 +8,28 @@
       </div>
       <div class="card-body">
         <form id="groceryListForm" action="/groceries/process" method="POST">
+          <!-- Camera/Photo Upload Section -->
+          <div class="mb-3">
+            <label class="form-label">Upload or capture a photo of your handwritten list:</label>
+            <div class="d-flex gap-2">
+              <input type="file"
+                     id="photoUpload"
+                     class="form-control"
+                     accept="image/*"
+                     capture="environment">
+              <button type="button"
+                      id="processPhotoBtn"
+                      class="btn btn-secondary">
+                <i class="bi bi-camera"></i> Process Photo
+              </button>
+            </div>
+            <small class="text-muted">Take a photo or upload an image of your handwritten grocery list</small>
+          </div>
+
+          <div class="text-center mb-3">
+            <span class="text-muted">— OR —</span>
+          </div>
+
           <div class="mb-3">
             <label for="groceryList" class="form-label">Enter items one per line or as a comma-separated list:</label>
             <textarea

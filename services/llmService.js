@@ -256,6 +256,72 @@ class LLMService {
       throw error;
     }
   }
+
+  /**
+   * Process a photo of a handwritten grocery list using vision-capable LLM
+   * @param {string} base64Image - Base64 encoded image
+   * @param {string} mimeType - Image MIME type (e.g., 'image/jpeg')
+   * @param {string} customModel - Optional custom model override
+   * @returns {Promise<string>} - Extracted grocery list as text
+   */
+  async processGroceryPhoto(base64Image, mimeType, customModel = null) {
+    try {
+      // Use custom model if provided, otherwise fall back to config with vision capability
+      const model = customModel || openrouterConfig.visionModel || 'anthropic/claude-sonnet-4.5';
+      
+      console.log('Processing photo with vision model:', model);
+      
+      const response = await this.openai.chat.completions.create({
+        model: model,
+        max_tokens: openrouterConfig.maxTokens || 1000,
+        temperature: 0.3, // Lower temperature for more accurate extraction
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: `Please analyze this image of a handwritten grocery list and extract all the items.
+              
+Format the output as a simple list with one item per line.
+Include quantities if visible (e.g., "2 gallons milk").
+Include any brand names, sizes, or preferences if written.
+Only output the grocery items, nothing else.
+
+Example format:
+2 gallons organic milk
+1 loaf whole wheat bread
+6 apples
+Cheerios cereal`
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:${mimeType};base64,${base64Image}`
+                }
+              }
+            ]
+          }
+        ]
+      });
+
+      const extractedText = response.choices[0].message.content.trim();
+      console.log('Extracted grocery list from photo:', extractedText);
+      
+      return extractedText;
+    } catch (error) {
+      console.error('Error processing grocery photo with LLM:', error);
+      if (error.response) {
+        console.error('API Error Response:', {
+          status: error.status,
+          message: error.message,
+          type: error.type,
+          body: error.response
+        });
+      }
+      throw error;
+    }
+  }
 }
 
 module.exports = LLMService;

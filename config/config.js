@@ -10,7 +10,8 @@ const krogerConfig = require('./kroger');
 const openrouterConfig = {
   apiKey: process.env.OPENROUTER_API_KEY,
   baseURL: 'https://openrouter.ai/api/v1',
-  model: 'anthropic/claude-haiku-4.5', // OpenRouter model naming
+  model: 'anthropic/claude-haiku-4.5', // OpenRouter model naming for text processing
+  visionModel: process.env.OPENROUTER_VISION_MODEL || 'anthropic/claude-sonnet-4.5', // Vision-capable model for image processing
   temperature: 0.7,
   maxTokens: 500,
   appName: process.env.OPENROUTER_APP_NAME || 'kroger-grocery-assistant',

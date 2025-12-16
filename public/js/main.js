@@ -38,8 +38,83 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  // Handle grocery list form
+  // Helper function to convert file to base64
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        // Remove data URL prefix to get just base64
+        const base64 = reader.result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Handle photo processing
+  const photoUpload = document.getElementById('photoUpload');
+  const processPhotoBtn = document.getElementById('processPhotoBtn');
   const groceryListTextarea = document.getElementById('groceryList');
+
+  if (processPhotoBtn && photoUpload && groceryListTextarea) {
+    processPhotoBtn.addEventListener('click', async function() {
+      const file = photoUpload.files[0];
+      if (!file) {
+        alert('Please select a photo first');
+        return;
+      }
+
+      // Show loading state
+      processPhotoBtn.disabled = true;
+      const originalBtnHtml = processPhotoBtn.innerHTML;
+      processPhotoBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
+
+      try {
+        // Convert image to base64
+        const base64Image = await fileToBase64(file);
+        
+        // Send to backend
+        const response = await fetch('/groceries/process-photo', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            image: base64Image,
+            mimeType: file.type
+          })
+        });
+
+        const data = await response.json();
+        
+        if (data.error) {
+          alert(data.error);
+          return;
+        }
+
+        // Populate textarea with extracted text
+        groceryListTextarea.value = data.groceryList;
+        
+        // Auto-resize textarea
+        groceryListTextarea.style.height = 'auto';
+        groceryListTextarea.style.height = (groceryListTextarea.scrollHeight) + 'px';
+        
+        // Show success message
+        alert('Photo processed! Please review and edit the items as needed.');
+        
+      } catch (error) {
+        console.error('Error processing photo:', error);
+        alert('Failed to process photo. Please try again.');
+      } finally {
+        // Reset button state
+        processPhotoBtn.disabled = false;
+        processPhotoBtn.innerHTML = originalBtnHtml;
+      }
+    });
+  }
+
+  // Handle grocery list form
   if (groceryListTextarea) {
     // Auto-resize textarea as user types
     groceryListTextarea.addEventListener('input', function() {

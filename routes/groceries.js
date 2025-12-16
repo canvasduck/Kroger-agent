@@ -398,4 +398,35 @@ router.get('/update-modality', isAuthenticated, (req, res) => {
   return res.json({ success: false });
 });
 
+// Process photo of handwritten grocery list
+router.post('/process-photo', isAuthenticated, async (req, res) => {
+  const { image, mimeType, model } = req.body;
+  
+  if (!image) {
+    return res.json({ error: 'No image provided' });
+  }
+  
+  try {
+    const llmService = new LLMService();
+    
+    // Process the photo with optional custom model
+    const groceryList = await llmService.processGroceryPhoto(image, mimeType, model);
+    
+    if (!groceryList || !groceryList.trim()) {
+      return res.json({ error: 'Could not extract grocery items from the photo' });
+    }
+    
+    res.json({
+      success: true,
+      groceryList: groceryList
+    });
+    
+  } catch (error) {
+    console.error('Error processing photo:', error);
+    res.json({
+      error: 'Failed to process photo. Please try again or enter your list manually.'
+    });
+  }
+});
+
 module.exports = router;

@@ -238,3 +238,7 @@ input:checked + .modality-slider:before {
   color: white;
   font-weight: 800;
 }
+
+#processPhotoBtn {
+  min-width: 160px;
+}
