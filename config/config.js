@@ -6,12 +6,15 @@
 
 const krogerConfig = require('./kroger');
 
-// Anthropic/Claude configuration
-const anthropicConfig = {
-  apiKey: process.env.ANTHROPIC_API_KEY,
-  model: 'claude-3-opus-20240229', // Claude's most capable model
+// OpenRouter configuration
+const openrouterConfig = {
+  apiKey: process.env.OPENROUTER_API_KEY,
+  baseURL: 'https://openrouter.ai/api/v1',
+  model: 'anthropic/claude-haiku-4.5', // OpenRouter model naming
   temperature: 0.7,
-  maxTokens: 500, // Used as max_tokens in API calls
+  maxTokens: 500,
+  appName: process.env.OPENROUTER_APP_NAME || 'kroger-grocery-assistant',
+  siteUrl: process.env.OPENROUTER_SITE_URL || 'http://localhost:3000',
 };
 
 // Application configuration
@@ -24,6 +27,6 @@ const appConfig = {
 
 module.exports = {
   kroger: krogerConfig,
-  anthropic: anthropicConfig,
+  openrouter: openrouterConfig,
   app: appConfig,
 };
