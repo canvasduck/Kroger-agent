@@ -16,12 +16,22 @@ app.use(bodyParser.json({ limit: '50mb' })); // Increase limit for base64 images
 app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Trust proxy for Render (uses reverse proxy)
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
 // Configure session
 app.use(session({
   secret: process.env.SESSION_SECRET || 'kroger-grocery-assistant-secret',
   resave: false,
-  saveUninitialized: true,
-  cookie: { secure: process.env.NODE_ENV === 'production' }
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 1000 * 60 * 60 * 24, // 24 hours
+    sameSite: 'lax'
+  }
 }));
 
 // Make session available to all views
