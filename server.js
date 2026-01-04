@@ -1,6 +1,7 @@
 const express = require('express');
 const session = require('express-session');
 const bodyParser = require('body-parser');
+const cors = require('cors');
 const path = require('path');
 const dotenv = require('dotenv');
 
@@ -10,6 +11,24 @@ dotenv.config();
 // Initialize Express app
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Configure CORS for cross-origin requests (e.g., static frontend on Vercel)
+const allowedOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(',').map(o => o.trim())
+  : [];
+
+app.use(cors({
+  origin: function(origin, callback) {
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    // Allow if origin is in the allowed list
+    if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,  // Required for cookies/sessions
+}));
 
 // Configure middleware
 app.use(bodyParser.json({ limit: '50mb' })); // Increase limit for base64 images
@@ -22,15 +41,18 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // Configure session
+const isProduction = process.env.NODE_ENV === 'production';
+const isCrossOrigin = allowedOrigins.length > 0;
+
 app.use(session({
   secret: process.env.SESSION_SECRET || 'kroger-grocery-assistant-secret',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: isProduction,           // HTTPS only in production
     httpOnly: true,
-    maxAge: 1000 * 60 * 60 * 24, // 24 hours
-    sameSite: 'lax'
+    maxAge: 1000 * 60 * 60 * 24,    // 24 hours
+    sameSite: isCrossOrigin ? 'none' : 'lax',  // 'none' required for cross-origin cookies
   }
 }));
 
