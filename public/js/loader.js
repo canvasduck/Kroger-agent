@@ -6,6 +6,8 @@
   'use strict';
 
   const CONFIG = {
+    // Set your backend URL here (leave empty for same-origin)
+    backendUrl: '',           // e.g., 'https://your-app.onrender.com'
     healthEndpoint: '/health',
     loginPath: '/auth/login',
     maxRetries: 30,           // Max attempts before showing error
@@ -13,6 +15,11 @@
     pollInterval: 1000,       // Check every 1 second
     timeout: 5000,            // Request timeout in ms
   };
+
+  // Helper to build full URLs
+  function buildUrl(path) {
+    return CONFIG.backendUrl ? CONFIG.backendUrl + path : path;
+  }
 
   let retryCount = 0;
   let checkInterval = null;
@@ -90,7 +97,7 @@
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), CONFIG.timeout);
 
-      const response = await fetch(CONFIG.healthEndpoint, {
+      const response = await fetch(buildUrl(CONFIG.healthEndpoint), {
         method: 'GET',
         signal: controller.signal,
         headers: {
@@ -113,7 +120,7 @@
 
           // Small delay for UX, then redirect
           setTimeout(() => {
-            window.location.href = CONFIG.loginPath;
+            window.location.href = buildUrl(CONFIG.loginPath);
           }, 300);
           return;
         }
