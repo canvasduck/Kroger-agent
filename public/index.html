@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grocery Assistant</title>
+  <!-- Inline critical CSS for instant rendering -->
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-color: #f8f9fa;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    /* Navbar */
+    .navbar {
+      background-color: #0073e6;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .navbar-brand {
+      color: white;
+      font-weight: bold;
+      font-size: 1.25rem;
+      text-decoration: none;
+    }
+
+    /* Main container */
+    .container {
+      flex: 1;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 0 1rem;
+      width: 100%;
+    }
+
+    /* Card */
+    .card {
+      background: white;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+
+    .card-header {
+      background-color: #0073e6;
+      color: white;
+      padding: 1rem;
+      text-align: center;
+    }
+
+    .card-header h2 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+
+    .card-body {
+      padding: 2rem;
+      text-align: center;
+    }
+
+    /* Logo */
+    .logo {
+      max-width: 200px;
+      margin-bottom: 1.5rem;
+    }
+
+    /* Loading spinner */
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid #e9ecef;
+      border-top-color: #0073e6;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 1.5rem auto;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Status text */
+    .status-text {
+      color: #6c757d;
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .status-subtext {
+      color: #adb5bd;
+      font-size: 0.875rem;
+    }
+
+    /* Progress bar */
+    .progress-container {
+      background-color: #e9ecef;
+      border-radius: 0.25rem;
+      height: 4px;
+      margin-top: 1.5rem;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      background-color: #0073e6;
+      height: 100%;
+      width: 0%;
+      animation: progress 2s ease-in-out infinite;
+    }
+
+    @keyframes progress {
+      0% { width: 0%; margin-left: 0%; }
+      50% { width: 30%; margin-left: 35%; }
+      100% { width: 0%; margin-left: 100%; }
+    }
+
+    /* Error state */
+    .error-state {
+      display: none;
+    }
+
+    .error-state.show {
+      display: block;
+    }
+
+    .error-text {
+      color: #dc3545;
+      margin-bottom: 1rem;
+    }
+
+    .retry-btn {
+      background-color: #0073e6;
+      color: white;
+      border: none;
+      padding: 0.5rem 1.5rem;
+      border-radius: 0.25rem;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+
+    .retry-btn:hover {
+      background-color: #0056b3;
+    }
+
+    /* Footer */
+    .footer {
+      margin-top: auto;
+      padding: 1rem;
+      text-align: center;
+      color: #6c757d;
+      font-size: 0.875rem;
+    }
+
+    /* Hide loading state when error shows */
+    .loading-state.hide {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <span class="navbar-brand">Grocery Assistant</span>
+  </nav>
+
+  <div class="container">
+    <div class="card">
+      <div class="card-header">
+        <h2>Welcome</h2>
+      </div>
+      <div class="card-body">
+        <img
+          src="https://developer.kroger.com/assets/logos/integrated-blue-text.svg"
+          alt="Kroger Logo"
+          class="logo"
+        >
+
+        <!-- Loading State -->
+        <div class="loading-state" id="loadingState">
+          <div class="spinner"></div>
+          <p class="status-text" id="statusText">Starting up...</p>
+          <p class="status-subtext" id="statusSubtext">This may take a few seconds</p>
+          <div class="progress-container">
+            <div class="progress-bar"></div>
+          </div>
+        </div>
+
+        <!-- Error State -->
+        <div class="error-state" id="errorState">
+          <p class="error-text" id="errorText">Unable to connect to server</p>
+          <button class="retry-btn" onclick="startHealthCheck()">Try Again</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>Powered by Kroger API</p>
+  </div>
+
+  <script src="/js/loader.js"></script>
+</body>
+</html>

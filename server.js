@@ -48,6 +48,11 @@ app.set('views', path.join(__dirname, 'views'));
 const authRoutes = require('./routes/auth');
 const groceryRoutes = require('./routes/groceries');
 
+// Health check endpoint (responds quickly for cold start detection)
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: Date.now() });
+});
+
 // Use routes
 app.use('/auth', authRoutes);
 app.use('/groceries', groceryRoutes);
