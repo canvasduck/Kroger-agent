@@ -5,12 +5,16 @@
  * Required env:
  *   KROGER_CLIENT_ID, KROGER_CLIENT_SECRET
  * Optional env:
- *   KROGER_REDIRECT_URI   (default http://localhost:8787/callback)
- *   KROGER_CALLBACK_PORT  (default 8787)
- *   KROGER_MCP_STATE_DIR  (default ~/.kroger-agent)
+ *   KROGER_REDIRECT_URI      (default http://localhost:8787/callback; must be registered with Kroger)
+ *   KROGER_CALLBACK_PORT     (default 8787)
+ *   KROGER_DISABLE_LOOPBACK  (set to skip the local redirect listener; paste-URL login still works)
+ *   KROGER_MCP_STATE_DIR     (default ~/.kroger-agent; tokens.json is written 0600)
  *
- * Register in .mcp.json or ~/.claude.json as a stdio server:
- *   { "command": "node", "args": ["/abs/path/to/Kroger-agent/mcp/index.js"] }
+ * Register as a stdio MCP server, e.g. in Hermes config.yaml:
+ *   mcp_servers:
+ *     kroger:
+ *       command: node
+ *       args: [/abs/path/to/Kroger-agent/mcp/index.js]
  */
 
 // MCP stdio uses stdout exclusively for JSON-RPC frames. The shared config
@@ -31,7 +35,7 @@ const {
 const tools = require('./tools');
 
 const server = new Server(
-  { name: 'kroger-agent', version: '0.1.0' },
+  { name: 'kroger-agent', version: '0.2.0' },
   { capabilities: { tools: {} } }
 );
 
@@ -57,6 +61,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const payload = err.response?.data
       ? { error: err.message, details: err.response.data }
       : { error: err.message, code: err.code };
+    if (err.response?.data && err.code) payload.code = err.code;
     return {
       isError: true,
       content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }],
